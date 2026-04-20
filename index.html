@@ -23,7 +23,7 @@
         // ==========================================
         const manualOrders = [
             { username: 'only_mupiks', addedAt: '2024-05-20T12:00:00Z', waitHours: 72 }
-              // Добавляй новые заказы сюда
+            // Добавляй новые заказы сюда
         ];
 
         function renderApp() {
@@ -96,8 +96,8 @@
                                     <thead>
                                         <tr class="bg-slate-800/50 text-slate-400 text-xs uppercase tracking-wider">
                                             <th class="px-6 py-4 font-medium">№</th>
-                                            <th className="px-6 py-4 font-medium">Пользователь</th>
-                                            <th className="px-6 py-4 font-medium">Статус / Осталось</th>
+                                            <th class="px-6 py-4 font-medium">Пользователь</th>
+                                            <th class="px-6 py-4 font-medium">Статус / Осталось</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-800">
@@ -158,8 +158,10 @@
                 </div>
             `;
             lucide.createIcons();
-            // Возвращаем фокус в инпут после рендера, если он там был
-            if (window.isFocused) document.getElementById('searchInput').focus();
+            if (window.isFocused) {
+                const input = document.getElementById('searchInput');
+                if (input) input.focus();
+            }
         }
 
         window.updateSearch = (val) => {
@@ -168,9 +170,8 @@
             renderApp();
         };
 
-        // Запуск
         renderApp();
-        setInterval(renderApp, 60000); // Обновляем таймеры каждую минуту
+        setInterval(renderApp, 60000);
     </script>
 </body>
 </html>
