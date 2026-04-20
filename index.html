@@ -19,11 +19,11 @@
     <script>
         // ==========================================
         // ТВОЙ СПИСОК ЗАКАЗОВ (РЕДАКТИРУЙ ТУТ)
-        // Формат даты: ГГГГ-ММ-ДДTЧЧ:ММ:ССZ
+        // Статусы: 'ready' (готово), 'pending' (в ожидании), 'rejected' (отклонено)
+        // Если оставить статус пустым '', будет работать авто-таймер 72ч
         // ==========================================
         const manualOrders = [
-            { username: 'only_mupiks', addedAt: '2024-05-20T12:00:00Z', waitHours: 72 }
-            // Добавляй новые заказы сюда
+            { username: 'only_mupiks', addedAt: '2024-05-20T12:00:00Z', waitHours: 72, status: 'pending' }
         ];
 
         function renderApp() {
@@ -31,25 +31,63 @@
             const searchTerm = window.searchTerm || '';
             const currentTime = Date.now();
 
-            const getOrderData = (order) => {
+            const getOrderDisplay = (order) => {
+                // Если статус задан вручную
+                if (order.status === 'ready') {
+                    return `
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-sm border border-green-500/20">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i> Готово к выдаче
+                        </span>
+                    `;
+                }
+                if (order.status === 'rejected') {
+                    return `
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 text-red-400 text-sm border border-red-500/20">
+                            <i data-lucide="x-circle" class="w-4 h-4"></i> Отклонено
+                        </span>
+                    `;
+                }
+                if (order.status === 'pending') {
+                    return `
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-500/10 text-yellow-400 text-sm border border-yellow-500/20">
+                            <i data-lucide="loader" class="w-4 h-4 animate-spin"></i> В ожидании
+                        </span>
+                    `;
+                }
+
+                // Автоматический расчет (если статус пустой)
                 const start = new Date(order.addedAt).getTime();
                 const readyAt = start + (order.waitHours * 60 * 60 * 1000);
                 const diff = readyAt - currentTime;
                 const isReady = diff <= 0;
 
-                let timeLeft = "Готово";
-                if (!isReady) {
+                if (isReady) {
+                    return `
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-sm border border-green-500/20">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i> Готово к выдаче
+                        </span>
+                    `;
+                } else {
                     const hours = Math.floor(diff / (1000 * 60 * 60));
                     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                    timeLeft = `${hours}ч ${minutes}м`;
+                    const timeLeft = `${hours}ч ${minutes}м`;
+                    const progress = Math.min(100, Math.max(0, 100 - (diff / (order.waitHours * 3600000) * 100)));
+                    
+                    return `
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium text-slate-200 flex items-center gap-2">
+                                <i data-lucide="clock" class="text-yellow-500 w-3 h-3"></i>
+                                ${timeLeft}
+                            </span>
+                            <div class="w-40 h-1 bg-slate-800 rounded-full mt-2 overflow-hidden">
+                                <div class="h-full bg-yellow-500" style="width: ${progress}%"></div>
+                            </div>
+                        </div>
+                    `;
                 }
-
-                const progress = Math.min(100, Math.max(0, 100 - (diff / (order.waitHours * 3600000) * 100)));
-                return { isReady, timeLeft, progress };
             };
 
             const filteredOrders = manualOrders
-                .map(order => ({ ...order, ...getOrderData(order) }))
                 .filter(o => o.username.toLowerCase().includes(searchTerm.toLowerCase()))
                 .sort((a, b) => new Date(a.addedAt) - new Date(b.addedAt));
 
@@ -85,7 +123,7 @@
                                 />
                             </div>
                             <div class="bg-slate-900 border border-slate-800 px-6 py-3.5 rounded-2xl flex items-center gap-4 whitespace-nowrap">
-                                <span class="text-slate-400 text-sm">Активных заказов:</span>
+                                <span class="text-slate-400 text-sm">Всего заказов:</span>
                                 <span class="text-xl font-bold text-yellow-500">${manualOrders.length}</span>
                             </div>
                         </div>
@@ -97,7 +135,7 @@
                                         <tr class="bg-slate-800/50 text-slate-400 text-xs uppercase tracking-wider">
                                             <th class="px-6 py-4 font-medium">№</th>
                                             <th class="px-6 py-4 font-medium">Пользователь</th>
-                                            <th class="px-6 py-4 font-medium">Статус / Осталось</th>
+                                            <th class="px-6 py-4 font-medium">Статус / Прогресс</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-800">
@@ -113,21 +151,7 @@
                                                     </div>
                                                 </td>
                                                 <td class="px-6 py-4">
-                                                    ${order.isReady ? `
-                                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-sm border border-green-500/20">
-                                                            <i data-lucide="shield-check" class="w-4 h-4"></i> Готово к выдаче
-                                                        </span>
-                                                    ` : `
-                                                        <div class="flex flex-col">
-                                                            <span class="text-sm font-medium text-slate-200 flex items-center gap-2">
-                                                                <i data-lucide="clock" class="text-yellow-500 w-3 h-3"></i>
-                                                                ${order.timeLeft}
-                                                            </span>
-                                                            <div class="w-40 h-1 bg-slate-800 rounded-full mt-2 overflow-hidden">
-                                                                <div class="h-full bg-yellow-500" style="width: ${order.progress}%"></div>
-                                                            </div>
-                                                        </div>
-                                                    `}
+                                                    ${getOrderDisplay(order)}
                                                 </td>
                                             </tr>
                                         `).join('') : `
@@ -147,7 +171,7 @@
                             </div>
                             <div class="p-6 bg-yellow-500/5 border border-yellow-500/20 rounded-2xl">
                                 <h3 class="text-yellow-500 font-bold mb-2">Обновление</h3>
-                                <p class="text-slate-400">Список обновляется вручную после каждой успешной транзакции.</p>
+                                <p class="text-slate-400">Список обновляется вручную в коде репозитория после каждой транзакции.</p>
                             </div>
                         </div>
                     </main>
